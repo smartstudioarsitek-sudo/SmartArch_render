@@ -494,47 +494,48 @@ with col_right:
                     st.warning("⚠️ Sketsa belum diunggah! ControlNet membutuhkan gambar dasar (sketsa CAD/BIM) di Tab 'Geometri & Material' untuk menjiplak garis.")
                 else:
                     try:
-                            # 1. Daftarkan API Key ke environment
-                            os.environ["REPLICATE_API_TOKEN"] = replicate_api_key
-                            import replicate
-                            import tempfile
-                            import os
+                        # 1. Daftarkan API Key ke environment
+                        os.environ["REPLICATE_API_TOKEN"] = replicate_api_key
+                        import replicate
+                        import tempfile
+                        import os
+                        
+                        # 2. BIKIN JEMBATAN FILE FISIK (SOLUSI ERROR UNABLE TO INFER TYPE)
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                            tmp.write(uploaded_sketch_file.getvalue())
+                            tmp_path = tmp.name
                             
-                            # 2. BIKIN JEMBATAN FILE FISIK (SOLUSI ERROR UNABLE TO INFER TYPE)
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-                                tmp.write(uploaded_sketch_file.getvalue())
-                                tmp_path = tmp.name
-                                
-                            # 3. Panggil Mesin FLUX DEPTH PRO (Raja Fotorealisme Arsitektur)
-                            with open(tmp_path, "rb") as file_fisik:
-                                output = replicate.run(
-                                    "black-forest-labs/flux-depth-pro", 
-                                    input={
-                                        "control_image": file_fisik,
-                                        "prompt": st.session_state.generated_prompt + ", ultra-photorealistic architectural photography, 8k resolution, highly detailed PBR materials, weathered textures, octane render, Unreal Engine 5, cinematic lighting, dramatic shadows",
-                                        "output_format": "jpg",
-                                        "steps": 35,
-                                        "guidance": 3.5,
-                                        "control_weight": 0.85
-                                    }
-                                )
-                                
-                            # 4. Hapus file sementara agar server tidak kepenuhan
-                            os.remove(tmp_path)
+                        # 3. Panggil Mesin FLUX DEPTH PRO (Raja Fotorealisme Arsitektur)
+                        with open(tmp_path, "rb") as file_fisik:
+                            output = replicate.run(
+                                "black-forest-labs/flux-depth-pro", 
+                                input={
+                                    "control_image": file_fisik,
+                                    "prompt": st.session_state.generated_prompt + ", ultra-photorealistic architectural photography, 8k resolution, highly detailed PBR materials, weathered textures, octane render, Unreal Engine 5, cinematic lighting, dramatic shadows",
+                                    "output_format": "jpg",
+                                    "steps": 35,
+                                    "guidance": 3.5,
+                                    "control_weight": 0.85
+                                }
+                            )
                             
-                            # 5. Tampilkan Hasil
-                            if output:
-                                final_image_url = str(output[0]) if isinstance(output, list) else str(output)
-                                
-                                st.success("✅ Geometri terkunci & Render FLUX Depth Selesai!")
-                                st.image(final_image_url, caption="Render Final FLUX Depth Pro", use_column_width=True)
-                                
-                                st.markdown(f"[⬇️ Klik di sini untuk mengunduh gambar resolusi tinggi]({final_image_url})")
-                            else:
-                                st.error("Gagal mengekstrak gambar dari server.")
-                                
-                        except Exception as e:
-                            st.error(f"Terjadi kesalahan pada server Replicate: {e}")                                   
+                        # 4. Hapus file sementara agar server tidak kepenuhan
+                        os.remove(tmp_path)
+                        
+                        # 5. Tampilkan Hasil
+                        if output:
+                            final_image_url = str(output[0]) if isinstance(output, list) else str(output)
+                            
+                            st.success("✅ Geometri terkunci & Render FLUX Depth Selesai!")
+                            st.image(final_image_url, caption="Render Final FLUX Depth Pro", use_column_width=True)
+                            
+                            st.markdown(f"[⬇️ Klik di sini untuk mengunduh gambar resolusi tinggi]({final_image_url})")
+                        else:
+                            st.error("Gagal mengekstrak gambar dari server.")
+                            
+                    except Exception as e:
+                        st.error(f"Terjadi kesalahan pada server Replicate: {e}")
+                                                
                                                                                                                                                                             
         else:
             st.info("👈 Silakan jelajahi 4 Tab di sebelah kiri, sesuaikan parameter, lalu klik **SUSUN PROMPT NEURAL**.")
