@@ -494,68 +494,66 @@ with col_right:
                     st.warning("⚠️ Sketsa belum diunggah! ControlNet membutuhkan gambar dasar (sketsa CAD/BIM) di Tab 'Geometri & Material' untuk menjiplak garis.")
                 else:
                     try:
-                            import requests
-                            import base64
-                            import time
-                            
-                            # 1. UBAH GAMBAR JADI KODE RAHASIA (BASE64)
-                            # Kita tidak butuh simpan file fisik, langsung ubah gambar dari RAM jadi teks Base64
-                            base64_img = base64.b64encode(uploaded_sketch_file.getvalue()).decode('utf-8')
-                            data_uri = f"data:image/jpeg;base64,{base64_img}"
-                            
-                            # 2. SIAPKAN PAKET UNTUK API REPLICATE MURNI
-                            headers = {
-                                "Authorization": f"Bearer {replicate_api_key}",
-                                "Content-Type": "application/json"
+                        import requests
+                        import base64
+                        import time
+                        
+                        # 1. UBAH GAMBAR JADI KODE RAHASIA (BASE64)
+                        base64_img = base64.b64encode(uploaded_sketch_file.getvalue()).decode('utf-8')
+                        data_uri = f"data:image/jpeg;base64,{base64_img}"
+                        
+                        # 2. SIAPKAN PAKET UNTUK API REPLICATE MURNI
+                        headers = {
+                            "Authorization": f"Bearer {replicate_api_key}",
+                            "Content-Type": "application/json"
+                        }
+                        
+                        payload = {
+                            "input": {
+                                "control_image": data_uri,
+                                "prompt": st.session_state.generated_prompt + ", ultra-photorealistic architectural photography, 8k resolution, highly detailed PBR materials, weathered textures, octane render, Unreal Engine 5, cinematic lighting, dramatic shadows",
+                                "output_format": "jpg",
+                                "steps": 35,
+                                "guidance": 3.5,
+                                "control_weight": 0.85
                             }
+                        }
+                        
+                        # 3. TEMBAK LANGSUNG KE JANTUNG SERVER (BYPASS PUSTAKA REPLICATE)
+                        api_url = "https://api.replicate.com/v1/models/black-forest-labs/flux-depth-pro/predictions"
+                        response = requests.post(api_url, headers=headers, json=payload)
+                        
+                        if response.status_code != 201:
+                            st.error(f"Gagal menghubungi server AI. Detail: {response.text}")
+                        else:
+                            prediction = response.json()
+                            check_url = prediction['urls']['get']
                             
-                            payload = {
-                                "input": {
-                                    "control_image": data_uri,
-                                    "prompt": st.session_state.generated_prompt + ", ultra-photorealistic architectural photography, 8k resolution, highly detailed PBR materials, weathered textures, octane render, Unreal Engine 5, cinematic lighting, dramatic shadows",
-                                    "output_format": "jpg",
-                                    "steps": 35,
-                                    "guidance": 3.5,
-                                    "control_weight": 0.85
-                                }
-                            }
-                            
-                            # 3. TEMBAK LANGSUNG KE JANTUNG SERVER (BYPASS PUSTAKA REPLICATE)
-                            api_url = "https://api.replicate.com/v1/models/black-forest-labs/flux-depth-pro/predictions"
-                            response = requests.post(api_url, headers=headers, json=payload)
-                            
-                            if response.status_code != 201:
-                                st.error(f"Gagal menghubungi server AI. Detail: {response.text}")
-                            else:
-                                prediction = response.json()
-                                check_url = prediction['urls']['get']
+                            # 4. RADAR PANTAU (POLLING) - Tunggu sampai gambar matang
+                            status_text = st.empty()
+                            while True:
+                                time.sleep(3) # Cek setiap 3 detik agar tidak diblokir server
+                                cek_status = requests.get(check_url, headers=headers).json()
+                                status = cek_status['status']
                                 
-                                # 4. RADAR PANTAU (POLLING) - Tunggu sampai gambar matang
-                                status_text = st.empty()
-                                while True:
-                                    time.sleep(3) # Cek setiap 3 detik agar tidak diblokir server
-                                    cek_status = requests.get(check_url, headers=headers).json()
-                                    status = cek_status['status']
+                                if status == 'succeeded':
+                                    status_text.empty()
+                                    final_image_url = cek_status['output']
                                     
-                                    if status == 'succeeded':
-                                        status_text.empty()
-                                        final_image_url = cek_status['output']
-                                        
-                                        st.success("✅ Geometri terkunci & Render FLUX Depth Selesai!")
-                                        # (Catatan minor: Saya sekalian ganti use_column_width jadi use_container_width agar warning kuning di terminal kakak hilang)
-                                        st.image(final_image_url, caption="Render Final FLUX Depth Pro", use_container_width=True) 
-                                        
-                                        st.markdown(f"[⬇️ Klik di sini untuk mengunduh gambar resolusi tinggi]({final_image_url})")
-                                        break
-                                    elif status == 'failed':
-                                        status_text.error("Gagal diproses oleh AI Replicate.")
-                                        break
-                                    else:
-                                        status_text.info(f"⏳ Sedang memasak tekstur di Cloud... Status: {status.upper()}")
-                                        
-                        except Exception as e:
-                            st.error(f"Terjadi kesalahan sistem lokal: {e}")
-                                               
+                                    st.success("✅ Geometri terkunci & Render FLUX Depth Selesai!")
+                                    st.image(final_image_url, caption="Render Final FLUX Depth Pro", use_container_width=True) 
+                                    
+                                    st.markdown(f"[⬇️ Klik di sini untuk mengunduh gambar resolusi tinggi]({final_image_url})")
+                                    break
+                                elif status == 'failed':
+                                    status_text.error("Gagal diproses oleh AI Replicate.")
+                                    break
+                                else:
+                                    status_text.info(f"⏳ Sedang memasak tekstur di Cloud... Status: {status.upper()}")
+                                    
+                    except Exception as e:
+                        st.error(f"Terjadi kesalahan sistem lokal: {e}")
+                                                           
                                                                                                                                                                             
         else:
             st.info("👈 Silakan jelajahi 4 Tab di sebelah kiri, sesuaikan parameter, lalu klik **SUSUN PROMPT NEURAL**.")
