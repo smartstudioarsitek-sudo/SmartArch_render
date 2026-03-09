@@ -507,18 +507,22 @@ with col_right:
                             "Authorization": f"Bearer {replicate_api_key}",
                             "Content-Type": "application/json"
                         }
-                        
+
                         payload = {
                             "input": {
                                 "control_image": data_uri,
-                                "prompt": st.session_state.generated_prompt + ", ultra-photorealistic architectural photography, 8k resolution, highly detailed PBR materials, weathered textures, octane render, Unreal Engine 5, cinematic lighting, dramatic shadows",
+                                # 1. INJEKSI PROMPT TINGKAT DEWA: Paksa AI memikirkan fisika render
+                                "prompt": st.session_state.generated_prompt + ", masterpiece architectural photography, hyper-realistic, 8k resolution, micro-displacement PBR textures, heavy ambient occlusion, raytraced reflections, subsurface scattering, subtle natural weathering, shot on Hasselblad medium format, --no flat, plastic, cgi, overexposed",
                                 "output_format": "jpg",
-                                "steps": 35,
-                                "guidance": 3.5,
-                                "control_weight": 0.85
+                                # 2. NAIKKAN WAKTU MASAK: AI butuh waktu lebih untuk merajut detail mikro
+                                "steps": 45, 
+                                # 3. NAIKKAN PENGARUH TEKS (GUIDANCE): Paksa AI mendengarkan instruksi tekstur bata/kaca, bukan sekadar melihat gambar polos
+                                "guidance": 4.5, 
+                                # 4. TURUNKAN RANTAI GEOMETRI (KUNCI UTAMA): Beri AI kebebasan untuk membuat dinding bata menjadi timbul/3D
+                                "control_weight": 0.45 
                             }
                         }
-                        
+                                                
                         # 3. TEMBAK LANGSUNG KE JANTUNG SERVER (BYPASS PUSTAKA REPLICATE)
                         api_url = "https://api.replicate.com/v1/models/black-forest-labs/flux-depth-pro/predictions"
                         response = requests.post(api_url, headers=headers, json=payload)
